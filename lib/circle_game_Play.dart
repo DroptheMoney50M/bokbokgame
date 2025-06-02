@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async'; // Timer 사용을 위해 추가
 
+const Color appBarToneColor = Colors.blue; // Define a constant tone color for AppBar
+
 class CircleGame_Play extends StatefulWidget {
   const CircleGame_Play({super.key});
 
@@ -16,6 +18,7 @@ class _CircleGame_PlayState extends State<CircleGame_Play> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('동그라미 술래 - 설정'),
+        backgroundColor: appBarToneColor, // Apply the tone color
       ),
       body: Center( // Column 위젯을 Center 위젯으로 감싸기
         child: Column(
@@ -98,15 +101,18 @@ class _CircleGameLogicState extends State<CircleGameLogic> with TickerProviderSt
   ];
   late AnimationController animationController;
   late Tween<double> sizeTween;
+  Timer? countdownTimer; // 카운트다운 타이머
 
   @override
   void initState() {
     super.initState();
-    Timer.periodic(const Duration(seconds: 1), (timer) {
+    countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (countdown > 0) {
-        setState(() {
-          countdown--; // 카운트다운 감소
-        });
+        if (mounted) { // 위젯이 트리에 있는지 확인
+          setState(() {
+            countdown--; // 카운트다운 감소
+          });
+        }
       } else {
         timer.cancel(); // 카운트다운이 0이 되면 타이머 중지
       }
@@ -115,11 +121,12 @@ class _CircleGameLogicState extends State<CircleGameLogic> with TickerProviderSt
       duration: const Duration(seconds: 1),
       vsync: this,
     )..repeat(reverse: true); // 애니메이션 반복
-    sizeTween = Tween<double>(begin: 50, end: 100); // 동그라미 크기 설정
+    sizeTween = Tween<double>(begin: 70, end: 120); // 동그라미 크기를 손가락보다 살짝 크게 설정
   }
 
   @override
   void dispose() {
+    countdownTimer?.cancel(); // 타이머 해제
     animationController.dispose(); // 애니메이션 컨트롤러 해제
     super.dispose();
   }
@@ -129,17 +136,36 @@ class _CircleGameLogicState extends State<CircleGameLogic> with TickerProviderSt
     return Scaffold(
       appBar: AppBar(
         title: const Text('동그라미 술래 - 게임 시작'),
+        backgroundColor: appBarToneColor, // Apply the tone color
       ),
       body: GestureDetector(
+        onTapDown: (details) { // 마우스 클릭 또는 손가락 눌렀을 때 호출
+          if (mounted) { // 위젯이 트리에 있는지 확인
+            setState(() {
+              touchPositions[details.hashCode] = details.localPosition; // 손가락 위치 업데이트
+            });
+          }
+        },
         onPanUpdate: (details) { // 손가락 이동 시 호출
-          setState(() {
-            touchPositions[details.hashCode] = details.localPosition; // 손가락 위치 업데이트
-          });
+          if (mounted) { // 위젯이 트리에 있는지 확인
+            setState(() {
+              touchPositions[details.hashCode] = details.localPosition; // 손가락 위치 업데이트
+            });
+          }
         },
         onPanEnd: (details) { // 손가락을 뗄 때 호출
-          setState(() {
-            touchPositions.remove(details.hashCode); // 손가락 위치 제거
-          });
+          if (mounted) { // 위젯이 트리에 있는지 확인
+            setState(() {
+              touchPositions.remove(details.hashCode); // 손가락 위치 제거
+            });
+          }
+        },
+        onTapUp: (details) { // 마우스 클릭 또는 손가락 뗄 때 호출
+          if (mounted) { // 위젯이 트리에 있는지 확인
+            setState(() {
+              touchPositions.remove(details.hashCode); // 손가락 위치 제거
+            });
+          }
         },
         child: Stack(
           children: [

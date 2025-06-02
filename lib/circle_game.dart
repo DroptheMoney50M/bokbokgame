@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'circle_game_Play.dart';
 
+const Color appBarToneColor = Colors.blue; // Define a constant tone color for AppBar
+
 class CircleGamePage extends StatelessWidget {
   const CircleGamePage({super.key});
 
@@ -10,6 +12,7 @@ class CircleGamePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('동그라미 술래'),
+        backgroundColor: appBarToneColor, // Apply the tone color
       ),
       body: Center( // Wrap Column with Center widget
         child: Column(
