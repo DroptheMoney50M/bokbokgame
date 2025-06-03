@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async'; // Timer 사용을 위해 추가
+import 'dart:math';
+
+import 'main.dart';
 
 const Color appBarToneColor = Colors.blue; // Define a constant tone color for AppBar
 
@@ -85,7 +88,6 @@ class _CircleGame_PlayState extends State<CircleGame_Play> {
 //실제 게임 로직
 class CircleGameLogic extends StatefulWidget {
   final int seekerCount;
-
   const CircleGameLogic({required this.seekerCount, super.key});
 
   @override
@@ -93,41 +95,52 @@ class CircleGameLogic extends StatefulWidget {
 }
 
 class _CircleGameLogicState extends State<CircleGameLogic> with TickerProviderStateMixin {
-  int countdown = 10; // 초기 카운트다운 값
-  final Map<int, Offset> touchPositions = {}; // 손가락 ID와 위치 저장
-  final List<Color> colors = [ // 고유 색상 리스트
+  int countdown = 10;
+  final Map<int, Offset> touchPositions = {}; // pointerId → 위치
+  final Map<int, Color> circleColors = {}; // pointerId → 색상
+  final List<Color> colors = [
     Colors.red, Colors.blue, Colors.green, Colors.yellow, Colors.purple,
     Colors.orange, Colors.cyan, Colors.pink, Colors.teal, Colors.lime
   ];
+  final Set<int> selectedSeekers = {}; // 선택된 pointerId
   late AnimationController animationController;
   late Tween<double> sizeTween;
-  Timer? countdownTimer; // 카운트다운 타이머
+  Timer? countdownTimer;
 
   @override
   void initState() {
     super.initState();
     countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (countdown > 0) {
-        if (mounted) { // 위젯이 트리에 있는지 확인
-          setState(() {
-            countdown--; // 카운트다운 감소
-          });
-        }
+        setState(() {
+          countdown--;
+        });
       } else {
-        timer.cancel(); // 카운트다운이 0이 되면 타이머 중지
+        timer.cancel();
+        setState(() {
+          selectRandomSeekers();
+        });
       }
     });
+
     animationController = AnimationController(
-      duration: const Duration(seconds: 1),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
-    )..repeat(reverse: true); // 애니메이션 반복
-    sizeTween = Tween<double>(begin: 70, end: 120); // 동그라미 크기를 손가락보다 살짝 크게 설정
+    )..repeat(reverse: true);
+
+    sizeTween = Tween<double>(begin: 60, end: 100);
+  }
+
+  void selectRandomSeekers() {
+    final keys = touchPositions.keys.toList();
+    keys.shuffle();
+    selectedSeekers.addAll(keys.take(widget.seekerCount));
   }
 
   @override
   void dispose() {
-    countdownTimer?.cancel(); // 타이머 해제
-    animationController.dispose(); // 애니메이션 컨트롤러 해제
+    countdownTimer?.cancel();
+    animationController.dispose();
     super.dispose();
   }
 
@@ -136,81 +149,118 @@ class _CircleGameLogicState extends State<CircleGameLogic> with TickerProviderSt
     return Scaffold(
       appBar: AppBar(
         title: const Text('동그라미 술래 - 게임 시작'),
-        backgroundColor: appBarToneColor, // Apply the tone color
       ),
-      body: GestureDetector(
-        onTapDown: (details) { // 마우스 클릭 또는 손가락 눌렀을 때 호출
-          if (mounted) { // 위젯이 트리에 있는지 확인
+      body: Listener(
+        behavior: HitTestBehavior.opaque, // 터치 이벤트를 전체 화면에서 감지하도록 설정
+        onPointerDown: (event) {
+          if (countdown > 0) {
             setState(() {
-              touchPositions[details.hashCode] = details.localPosition; // 손가락 위치 업데이트
+              touchPositions[event.pointer] = event.localPosition;
+              circleColors[event.pointer] = colors[event.pointer % colors.length];
             });
           }
         },
-        onPanUpdate: (details) { // 손가락 이동 시 호출
-          if (mounted) { // 위젯이 트리에 있는지 확인
+        onPointerMove: (event) {
+          if (countdown > 0) {
             setState(() {
-              touchPositions[details.hashCode] = details.localPosition; // 손가락 위치 업데이트
+              touchPositions[event.pointer] = event.localPosition;
             });
           }
         },
-        onPanEnd: (details) { // 손가락을 뗄 때 호출
-          if (mounted) { // 위젯이 트리에 있는지 확인
+        onPointerUp: (event) {
+          if (countdown > 0) {
             setState(() {
-              touchPositions.remove(details.hashCode); // 손가락 위치 제거
+              touchPositions.remove(event.pointer);
+              circleColors.remove(event.pointer);
             });
           }
         },
-        onTapUp: (details) { // 마우스 클릭 또는 손가락 뗄 때 호출
-          if (mounted) { // 위젯이 트리에 있는지 확인
-            setState(() {
-              touchPositions.remove(details.hashCode); // 손가락 위치 제거
-            });
-          }
-        },
-        child: Stack(
-          children: [
-            Positioned(
-              top: 20, // 중앙 상단 위치 설정
-              left: 0,
-              right: 0,
-              child: Column(
-                children: [
-                  Text(
-                    '선택된 술래 수: ${widget.seekerCount}명',
-                    style: const TextStyle(fontSize: 24),
-                    textAlign: TextAlign.center, // 텍스트를 중앙 정렬
-                  ),
-                  const SizedBox(height: 10), // 텍스트와 타이머 사이 간격 추가
-                  Text(
-                    '$countdown초', // 카운트다운 표시
-                    style: const TextStyle(fontSize: 20, color: Colors.red), // 스타일 설정
-                  ),
-                ],
-              ),
-            ),
-            ...touchPositions.entries.map((entry) {
-              final fingerIndex = entry.key % colors.length; // 손가락 ID에 따라 색상 선택
-              final position = entry.value;
-              return AnimatedBuilder(
-                animation: animationController,
-                builder: (context, child) {
-                  final size = sizeTween.evaluate(animationController); // 크기 애니메이션
-                  return Positioned(
-                    left: position.dx - size / 2,
-                    top: position.dy - size / 2,
-                    child: Container(
-                      width: size,
-                      height: size,
-                      decoration: BoxDecoration(
-                        color: colors[fingerIndex].withOpacity(0.5), // 색상 설정
-                        shape: BoxShape.circle, // 동그라미 모양
-                      ),
+        child: SizedBox.expand(
+          child: Stack(
+            children: [
+              Positioned(
+                top: 20,
+                left: 0,
+                right: 0,
+                child: Column(
+                  children: [
+                    Text(
+                      '선택된 술래 수: ${widget.seekerCount}명',
+                      style: const TextStyle(fontSize: 24),
                     ),
-                  );
-                },
-              );
-            }).toList(),
-          ],
+                    Text(
+                      '$countdown초',
+                      style: const TextStyle(fontSize: 20, color: Colors.red),
+                    ),
+                  ],
+                ),
+              ),
+              ...touchPositions.entries.map((entry) {
+                final pointerId = entry.key;
+                final pos = entry.value;
+                final isVisible = countdown == 0
+                    ? selectedSeekers.contains(pointerId)
+                    : true;
+
+                if (!isVisible) return const SizedBox.shrink(); // 숨김
+
+                final color = circleColors[pointerId] ?? Colors.red;
+                return AnimatedBuilder(
+                  animation: animationController,
+                  builder: (context, child) {
+                    final size = sizeTween.evaluate(animationController);
+                    return Positioned(
+                      left: pos.dx - size / 2,
+                      top: pos.dy - size / 2,
+                      child: Container(
+                        width: size,
+                        height: size,
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.5),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }).toList(),
+              if (countdown == 0) // 카운트다운이 0일 때 버튼 표시
+                Positioned(
+                  bottom: 20,
+                  left: 0,
+                  right: 0,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          // 현재 술래 명수로 게임 다시 시작
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CircleGameLogic(seekerCount: widget.seekerCount),
+                            ),
+                          );
+                        },
+                        child: const Text('다시하기'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          // MyHomePage로 이동
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const MyHomePage(title: '복불복 게임'),
+                            ),
+                          );
+                        },
+                        child: const Text('다른 복불복'),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
