@@ -1,0 +1,20 @@
+# bokboklogo를 앱 런처 아이콘으로 적용하려면 아래와 같이 진행하세요.
+# 1. assets/bokboklogo.png 파일을 준비합니다. (이미 있음)
+# 2. 아래 명령어를 실행해 모든 해상도에 맞는 런처 아이콘을 자동 생성합니다.
+#
+# Windows 명령 프롬프트에서:
+flutter pub add flutter_launcher_icons
+flutter pub get
+flutter pub run flutter_launcher_icons:main
+#
+# pubspec.yaml에 아래 설정을 추가하세요:
+#
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/bokboklogo.png"
+  remove_alpha_ios: true
+#
+# 적용 후 기존 ic_launcher.png 파일들이 자동으로 교체됩니다.
+#
+# 참고: https://pub.dev/packages/flutter_launcher_icons
