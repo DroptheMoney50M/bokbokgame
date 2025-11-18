@@ -34,6 +34,17 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // 16KB 메모리 페이지 크기 지원
+        ndk {
+            abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64'
+        }
+        
+        // 16KB 페이지 크기 지원을 위한 추가 설정
+        manifestPlaceholders = [
+            'android:supportsRtl': 'true',
+            'android:largeHeap': 'true'
+        ]
     }
 
     signingConfigs {
@@ -48,6 +59,10 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
+            // 디버그 기호 생성 활성화
+            ndk {
+                debugSymbolLevel 'FULL'
+            }
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             // signingConfig = signingConfigs.debug

@@ -1,8 +1,23 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 광고 ID 권한 -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+    
+    <!-- 16KB 페이지 크기 지원 선언 -->
+    <supports-screens android:anyDensity="true" />
+    
     <application
         android:label="bokbok"
-        android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:supportsRtl="true">
+        
+        <!-- 16KB 페이지 크기 지원을 위한 메타데이터 -->
+        <meta-data
+            android:name="android.max_aspect"
+            android:value="2.4" />
+        <meta-data
+            android:name="android.allow_multiple_resumed_activities"
+            android:value="true" />
+            
         <activity
             android:name=".MainActivity"
             android:exported="true"
